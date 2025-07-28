@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+#load_dotenv()
+#api_key = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key="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")
 app = Flask(__name__)
 CORS(app)
 
