@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Chat with Bruno{% endblock %}
+
+{% block head %}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0a0a0a;
+      color: white;
+      margin: 2;
+      padding-bottom: 38px;
+    }
+
+    .bruno-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 6px;
+  box-shadow: 0 0 3px #00ffd5;
+}
+    #chatbox {
+      max-width: 600px;
+      margin: 2em auto;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,255,213,0.4);
+      display: flex;
+      flex-direction: column;
+    }
+    #messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #00ffd5;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    .message { margin-bottom: 10px;font-size: 0.8em; /* Change this value as you like (e.g., 16px, 1.2em, etc.) */ }
+    .user { font-weight: bold; color: #fff; font-size: 1.0em; /* or any size you want */}
+    .bruno {font-weight: bold; color: #00ffd5;font-size: 1.0em; /* or any size you want */}
+    .timestamp { font-size: 0.8em; color: #99d3c7; margin-left: 5px; }
+    .input-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    #userInput {
+      flex: 1; padding: 10px; font-size: 16px;
+      border: 1px solid #00ffd5; border-radius: 4px; background: #1a1a1a; color: white;
+    }
+    button {
+      padding: 10px 14px; font-size: 14px; background: #00ffd5; color: #0a0a0a;
+      border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s;
+    }
+    button:hover { background: #00ffc3; }
+
+    .avatar-container {
+      text-align: center; 
+      margin-bottom: 10px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      z-index: 10;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+    .avatar-container img {
+      border-radius: 35%;
+      box-shadow: 0 0 5px rgba(0,255,213,0.5);
+    }
+    @media (max-width:600px) {
+      #messages { height: 250px; }
+      .input-row { flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div id="chatbox">
+  <div id="avatar-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; position: absolute; top: 0; left: 0; width: 100%; background: rgba(10,10,10,0.98); z-index: 20;">
+    <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" width="120" height="120" id="avatar-img" style="border-radius: 50%; box-shadow: 0 0 10px #00ffd5; cursor: pointer;">
+    <h2 style="color: #00ffd5; margin-top: 20px;">Hello, I'm Bruno 👋</h2>
+    <p style="color: #99d3c7; max-width: 90%; text-align: center; margin-top: 10px;">
+      Click avatar to start chatting.<br>
+      <small>I am an AI assistant and cannot provide personal, legal, or medical advice. Please do not share sensitive personal information.</small>
+    </p>
+  </div>
+  <div id="chat-area" style="display: none; flex-direction: column; height: 100%;">
+    <div id="messages" aria-live="polite"></div>
+<div class="input-row">
+  <input type="text" id="userInput" placeholder="Type your message here..." aria-label="Type your message here" />
+  <button onclick="sendMessage()" aria-label="Send message" style="padding:2 15px;">
+    <img src="{{ url_for('static', filename='icons/send-icon.svg') }}" alt="Send" style="height:24px;width:24px;vertical-align:middle;">
+  </button>
+</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function getCurrentTimestamp() {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  window.onload = () => {
+    const messagesDiv = document.getElementById('messages');
+    const timestamp = getCurrentTimestamp();
+   
+  };
+
+  async function sendMessage() {
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const messagesDiv = document.getElementById('messages');
+    const timestamp = getCurrentTimestamp();
+    messagesDiv.innerHTML += `<div class="message"><span class="user">You:</span> ${message} <span class="timestamp">${timestamp}</span></div>`;
+    input.value = "";
+
+    const typingId = "typing";
+    messagesDiv.innerHTML += `<div class="message" id="${typingId}"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> <img src="{{ url_for('static', filename='icons/typing-dots.svg') }}" alt="typing..." style="vertical-align: middle; height: 18px;"></div>`;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await response.json();
+      const reply = data.reply || "Bruno didn’t respond. Please try again.";
+
+      document.getElementById(typingId).remove();
+      const replyTimestamp = getCurrentTimestamp();
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> ${reply} <span class="timestamp">${replyTimestamp}</span></div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (error) {
+      document.getElementById(typingId).remove();
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Sorry, something went wrong.</div>`;
+      console.error("Fetch error:", error);
+    }
+  }
+
+  document.getElementById('userInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  function startVoice() {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Voice input not supported in this browser.");
+      return;
+    }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-GB';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('userInput').value = transcript;
+      sendMessage();
+    };
+
+    recognition.onerror = function(event) {
+      console.error("Speech recognition error:", event.error);
+    };
+    recognition.start();
+  }
+
+
+  // Hide avatar overlay and show chat area on click
+  document.addEventListener("DOMContentLoaded", function() {
+    const avatarOverlay = document.getElementById('avatar-overlay');
+    const chatArea = document.getElementById('chat-area');
+    const avatarImg = document.getElementById('avatar-img');
+    avatarImg.addEventListener('click', function() {
+      avatarOverlay.style.display = 'none';
+      chatArea.style.display = 'flex';
+      // Optionally, show Bruno's welcome message
+      const messagesDiv = document.getElementById('messages');
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Hello, I'm Bruno. How can I help today?<span class="timestamp">${timestamp}</span></div>`;
+    });
+  });
+</script>
+{% endblock %}

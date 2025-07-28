@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Help | Bruno{% endblock %}
+
+{% block head %}
+<style>
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 22px;
+    justify-content: center;
+    margin-top: 32px;
+}
+.card {
+    background: linear-gradient(120deg,#1a1a1a 60%,#005f50 120%);
+    border: 2px solid #00ffd5;
+    border-radius: 18px;
+    box-shadow: 0 0 22px #00ffd540, 0 2px 8px #0a0a0a;
+    color: #fff;
+    max-width: 340px;
+    min-width: 230px;
+    flex:1 1 230px;
+    padding: 20px 18px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: box-shadow 0.18s, transform 0.12s;
+    margin-bottom: 13px;
+    font-size: 1.09em;
+}
+.card:hover, .card:focus-within {
+    box-shadow: 0 0 40px #00ffd590, 0 2px 13px #333;
+    transform: translateY(-3px) scale(1.02);
+}
+.card-title {
+    font-size: 1.19em;
+    font-weight: bold;
+    color: #00ffd5;
+    letter-spacing: 0.01em;
+    margin: 0 0 7px 0;
+}
+.card-icon {
+    font-size: 1.5em;
+    margin-right: 5px;
+    filter: drop-shadow(0 0 2px #00ffd590);
+}
+ul.help {
+    padding-left: 24px;
+    margin: 14px 0 6px 0;
+    color: #d0ffe3;
+}
+@media (max-width: 700px) {
+    .cards-container { flex-direction: column; gap: 13px; }
+    .card { margin: 0 auto 13px auto; min-width: 0; max-width: 420px;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 style="text-shadow:0 0 4px #00ffd520;margin-bottom:13px;">Help Using Bruno</h1>
+
+<div class="cards-container">
+  <div class="card">
+    <div class="card-title"><span class="card-icon">⌨️</span>Message Bruno</div>
+    <ul class="help">
+      <li>Type your message in the chat box and press <b>Send</b> or <b>Enter</b>.</li>
+      <li>Or tap the <b>microphone</b> icon to use your voice (if supported).</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-icon">💬</span>How Bruno Helps</div>
+    <ul class="help">
+      <li>Bruno replies with friendly support, suggestions, or signposting links.</li>
+      <li>Try asking about events, wellbeing, or help — Bruno can guide you.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-icon">🆘</span>In Distress?</div>
+    <ul class="help">
+      <li>If you're in distress, Bruno discreetly directs you to 
+        <a href="https://tegcic.org.uk/get-help" style="color:#00ffd5;">TEG CIC support</a>.
+      </li>
+      <li>All messages are private and non-judgemental.</li>
+    </ul>
+  </div>
+</div>
+
+<p style="margin-top:21px;text-align:center">
+  <a href="/" style="color:#00ffd5;text-decoration:none;font-weight:bold;font-size:1.1em;">← Back to Chat</a>
+</p>
+{% endblock %}

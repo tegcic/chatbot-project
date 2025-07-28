@@ -1,0 +1,44 @@
+/* Reset and base styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: white;
+  /* Remove background: #0a0a0a; */
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  touch-action: none;    /* Prevent touch scrolling/bounce on some browsers */
+}
+
+/* Chat container */
+#chatbox {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 8px;
+  background-image: url('img/background.png');
+  box-shadow: 0 0 10px rgba(0, 255, 213, 0.4);
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(2px); /* subtle blur for effect */
+  height: 79vh;
+}
+
+/* Message display area */
+#messages {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid #00ffd5;
+  padding: 10px;
+  background-image: url('img/background-dark.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 4px;
+  margin: 10px 10px 10px 10px;
+  min-height: 100px;
+  max-height: 120vh;
+  flex: 1 1 auto;
+}
