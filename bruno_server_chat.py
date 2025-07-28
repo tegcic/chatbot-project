@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 CORS(app)
 
