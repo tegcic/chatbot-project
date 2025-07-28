@@ -41,7 +41,8 @@ def chat():
     user_input = request.json.get("message")
     print(f"User said: {user_input}")
 
-    try: print("Calling OpenAI API...")
+    try: 
+        print("Calling OpenAI API...")
 
 
         response = client.chat.completions.create(
@@ -51,8 +52,8 @@ def chat():
                 {"role": "user", "content": user_input}
             ]
         )
-print("API call successful.")
-print("Checking response structure...")
+        print("API call successful.")
+        print("Checking response structure...")
 
 
 
