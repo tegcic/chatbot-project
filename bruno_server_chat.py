@@ -9,7 +9,7 @@ from datetime import datetime
 #load_dotenv()
 #api_key = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
 app = Flask(__name__)
 CORS(app)
 
@@ -43,8 +43,6 @@ def chat():
 
     try: 
         print("Calling OpenAI API...")
-
-
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -54,8 +52,6 @@ def chat():
         )
         print("API call successful.")
         print("Checking response structure...")
-
-
 
         # Debug: Print raw response structure
         #print("Raw response:", response)
