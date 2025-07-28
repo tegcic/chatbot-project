@@ -58,11 +58,6 @@ def home():
     return render_template("bruno_chat_local.html")
 
 if __name__ == "__main__":
-    ip = socket.gethostbyname(socket.gethostname())
-    url = f"https://ac5a43ed8fdc.ngrok-free.app/"
-    print(f"Bruno is live at {url}")
+    port = int(os.environ.get("PORT", 8080))  # Render sets PORT automatically
+    app.run(debug=False, host="0.0.0.0", port=port)
 
-    qr = qrcode.make(url)
-    # qr.show() #Disabled to prevent popup
-
-app.run(debug=True, host='0.0.0.0', port=8080)
