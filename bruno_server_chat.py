@@ -51,7 +51,7 @@ def chat():
         )
 
         # Debug: Print raw response structure
-        print("Raw response:", response)
+        #print("Raw response:", response)
 
         # Defensive parsing
         if hasattr(response, "choices") and len(response.choices) > 0:
