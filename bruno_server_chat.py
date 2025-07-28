@@ -49,9 +49,24 @@ def chat():
                 {"role": "user", "content": user_input}
             ]
         )
-        reply = response.choices[0].message.content
-        return jsonify({"reply": reply})
+
+        # Debug: Print raw response structure
+        print("Raw response:", response)
+
+        # Defensive parsing
+        if hasattr(response, "choices") and len(response.choices) > 0:
+            choice = response.choices[0]
+            if hasattr(choice, "message") and hasattr(choice.message, "content"):
+                reply = choice.message.content
+                return jsonify({"reply": reply})
+            else:
+                raise ValueError("Missing 'message.content' in response. Structure may have changed.")
+        else:
+            raise ValueError("Empty or malformed 'choices' in response.")
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Error: {e}")
         return jsonify({"reply": "Sorry, something went wrong."}), 500
 
