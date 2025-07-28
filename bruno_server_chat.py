@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from openai import OpenAI
 import socket
-import qrcode
 from dotenv import load_dotenv
 import os
 from datetime import datetime
