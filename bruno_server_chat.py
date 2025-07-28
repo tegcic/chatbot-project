@@ -23,6 +23,10 @@ def inject_year():
 @app.route("/help")
 def help():
     return render_template("help.html")
+    
+@app.route("/healthz")
+def health_check():
+    return "OK", 200
 
 @app.route("/submit-feedback", methods=["POST"])
 def submit_feedback():
