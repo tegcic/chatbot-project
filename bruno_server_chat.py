@@ -41,7 +41,9 @@ def chat():
     user_input = request.json.get("message")
     print(f"User said: {user_input}")
 
-    try:
+    try: print("Calling OpenAI API...")
+
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -49,6 +51,10 @@ def chat():
                 {"role": "user", "content": user_input}
             ]
         )
+print("API call successful.")
+print("Checking response structure...")
+
+
 
         # Debug: Print raw response structure
         #print("Raw response:", response)
