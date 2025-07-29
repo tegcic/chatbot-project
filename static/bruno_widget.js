@@ -246,6 +246,20 @@
         const overlay = widgetContainer.querySelector('.bruno-overlay');
         const overlayAvatar = widgetContainer.querySelector('.bruno-overlay-avatar');
         const closeButton = widgetContainer.querySelector('.bruno-close-button');
+        
+       // Add swipe down to close functionality
+        let startY = 0; widgetContainer.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;});
+
+        widgetContainer.addEventListener('touchend', (e) => {
+        const endY = e.changedTouches[0].clientY;
+        const deltaY = endY - startY;
+
+        if (deltaY > 100) { // Adjust threshold as needed
+        widgetContainer.classList.remove('open');
+        floatingButton.classList.remove('hidden'); }
+           });
+
 
         // Event Listeners
         sendButton.onclick = () => sendMessage(messagesDiv, userInput, sendButton);
