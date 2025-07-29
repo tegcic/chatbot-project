@@ -7,7 +7,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 350px; /* Adjust width as needed */
+            width: 300px; /* Adjust width as needed */
             height: 450px; /* Adjust height as needed */
             background: #0a0a0a;
             border-radius: 8px;
@@ -52,7 +52,7 @@
         .bruno-bruno-avatar {
             width: 24px;
             height: 24px;
-            border-radius: 50%;
+            border-radius: 30%;
             vertical-align: middle;
             margin-right: 6px;
             box-shadow: 0 0 3px #00ffd5;
