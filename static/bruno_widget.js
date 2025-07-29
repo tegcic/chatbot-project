@@ -7,7 +7,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 300px; /* Adjust width as needed */
+            width: 270px; /* Adjust width as needed */
             height: 450px; /* Adjust height as needed */
             background: #0a0a0a;
             border-radius: 8px;
