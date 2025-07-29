@@ -12,13 +12,13 @@
     }
 
     .bruno-avatar {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: 6px;
-      box-shadow: 0 0 3px #00ffd5;
-    }
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 6px;
+  box-shadow: 0 0 3px #00ffd5;
+}
     #chatbox {
       max-width: 600px;
       margin: 2em auto;
@@ -36,9 +36,9 @@
       margin-bottom: 15px;
       border-radius: 4px;
     }
-    .message { margin-bottom: 10px;font-size: 0.8em; } /* Change this value as you like (e.g., 16px, 1.2em, etc.) */
-    .user { font-weight: bold; color: #fff; font-size: 1.0em; } /* or any size you want */
-    .bruno {font-weight: bold; color: #00ffd5;font-size: 1.0em; } /* or any size you want */
+    .message { margin-bottom: 10px;font-size: 0.8em; /* Change this value as you like (e.g., 16px, 1.2em, etc.) */ }
+    .user { font-weight: bold; color: #fff; font-size: 1.0em; /* or any size you want */}
+    .bruno {font-weight: bold; color: #00ffd5;font-size: 1.0em; /* or any size you want */}
     .timestamp { font-size: 0.8em; color: #99d3c7; margin-left: 5px; }
     .input-row { display: flex; gap: 10px; flex-wrap: wrap; }
     #userInput {
@@ -52,7 +52,7 @@
     button:hover { background: #00ffc3; }
 
     .avatar-container {
-      text-align: center;
+      text-align: center; 
       margin-bottom: 10px;
       position: fixed;
       top: 0;
@@ -66,22 +66,6 @@
       border-radius: 35%;
       box-shadow: 0 0 5px rgba(0,255,213,0.5);
     }
-    /* Styles for the New Chat button */
-    #new-chat-button {
-        background: none;
-        border: 1px solid #00ffd5;
-        color: #00ffd5;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 0.8em;
-        margin-left: auto; /* Push to the right */
-        display: none; /* Hidden until chat starts */
-    }
-    #new-chat-button:hover {
-        background: rgba(0,255,213,0.1);
-    }
-
     @media (max-width:600px) {
       #messages { height: 250px; }
       .input-row { flex-direction: column; }
@@ -101,204 +85,106 @@
     </p>
   </div>
   <div id="chat-area" style="display: none; flex-direction: column; height: 100%;">
-    <div class="chat-header">
-        <span>Bruno Chatbot</span>
-        <button id="new-chat-button">New Chat</button>
-    </div>
     <div id="messages" aria-live="polite"></div>
-    <div class="input-row">
-      <input type="text" id="userInput" placeholder="Type your message here..." aria-label="Type your message here" />
-      <button id="send-button" aria-label="Send message" style="padding:2 15px;">
-        <img src="{{ url_for('static', filename='icons/send-icon.svg') }}" alt="Send" style="height:24px;width:24px;vertical-align:middle;">
-      </button>
-    </div>
+<div class="input-row">
+  <input type="text" id="userInput" placeholder="Type your message here..." aria-label="Type your message here" />
+  <button onclick="sendMessage()" aria-label="Send message" style="padding:2 15px;">
+    <img src="{{ url_for('static', filename='icons/send-icon.svg') }}" alt="Send" style="height:24px;width:24px;vertical-align:middle;">
+  </button>
+</div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  const messagesDiv = document.getElementById('messages');
-  const userInput = document.getElementById('userInput');
-  const sendButton = document.getElementById('send-button');
-  const avatarOverlay = document.getElementById('avatar-overlay');
-  const chatArea = document.getElementById('chat-area');
-  const avatarImg = document.getElementById('avatar-img');
-  const newChatButton = document.getElementById('new-chat-button'); // New chat button
-
-  let currentThreadId = null; // Variable to store the current thread ID
-
   function getCurrentTimestamp() {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
-  // Function to display messages in the chat UI
-  function displayMessage(message, sender) {
+  window.onload = () => {
+    const messagesDiv = document.getElementById('messages');
     const timestamp = getCurrentTimestamp();
-    const messageHtml = `<div class="message">
-        <span class="${sender}">
-            ${sender === 'bruno' ? `<img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'>` : 'You:'}
-        </span>
-        ${message}
-        <span class="timestamp">${timestamp}</span>
-    </div>`;
-    messagesDiv.innerHTML += messageHtml;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
-  }
+   
+  };
 
-  // Function to get thread ID from localStorage or create a new one
-  async function getOrCreateThreadId(isNewChat = false) {
-      if (isNewChat) {
-          localStorage.removeItem('bruno_chat_thread_id'); // Clear for a truly new chat
-          currentThreadId = null;
-          messagesDiv.innerHTML = ''; // Clear chat UI
-          displayMessage("Starting a new conversation...", "assistant");
-      }
-
-      let threadId = localStorage.getItem('bruno_chat_thread_id'); // Use a distinct key
-
-      if (!threadId) {
-          console.log('No existing thread ID found or new chat requested. Requesting a new one...');
-          try {
-              // Make a POST request to your Flask backend's /new_thread endpoint
-              const response = await fetch('/new_thread', {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json'
-                  }
-              });
-              const data = await response.json();
-              if (response.ok) {
-                  threadId = data.thread_id;
-                  localStorage.setItem('bruno_chat_thread_id', threadId);
-                  console.log('New thread created and stored:', threadId);
-                  // Initial welcome message
-                  if (!isNewChat) { // Don't double-welcome if new chat just cleared
-                    displayMessage("Hello! I'm Bruno. How can I assist you today?", "bruno");
-                  }
-              } else {
-                  console.error('Error creating new thread:', data.error);
-                  displayMessage("Error: Could not start a new conversation. Please try again.", "bruno");
-              }
-          } catch (error) {
-              console.error('Network error creating new thread:', error);
-              displayMessage("Error: Network issue. Could not start a new conversation.", "bruno");
-          }
-      } else {
-          console.log('Using existing thread:', threadId);
-          // Only show welcome back if not a new chat and messages div is empty
-          if (!isNewChat && messagesDiv.children.length === 0) {
-            displayMessage("Welcome back! How can I help you continue our conversation?", "bruno");
-          }
-      }
-      return threadId;
-  }
-
-  // Function to send message to the backend
   async function sendMessage() {
-    const userMessage = userInput.value.trim();
-    if (!userMessage) return;
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
 
-    displayMessage(userMessage, 'user'); // Display user's message immediately
-    userInput.value = ''; // Clear input field
+    const messagesDiv = document.getElementById('messages');
+    const timestamp = getCurrentTimestamp();
+    messagesDiv.innerHTML += `<div class="message"><span class="user">You:</span> ${message} <span class="timestamp">${timestamp}</span></div>`;
+    input.value = "";
 
-    // Disable input and button while waiting for response
-    userInput.disabled = true;
-    sendButton.disabled = true;
-    sendButton.innerHTML = '<img src="{{ url_for('static', filename='icons/typing-dots.svg') }}" alt="sending..." style="height:24px;width:24px;">'; // Show typing indicator on button
-
-    const typingId = "typing-indicator-bruno"; // Unique ID for Bruno's typing dots
+    const typingId = "typing";
     messagesDiv.innerHTML += `<div class="message" id="${typingId}"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> <img src="{{ url_for('static', filename='icons/typing-dots.svg') }}" alt="typing..." style="vertical-align: middle; height: 18px;"></div>`;
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     try {
-        // Ensure we have a thread ID before sending the message
-        if (!currentThreadId) {
-            currentThreadId = await getOrCreateThreadId();
-            if (!currentThreadId) { // If still null after trying to create
-                console.error("Failed to obtain thread ID. Cannot send message.");
-                return; // Cannot proceed without a thread ID
-            }
-        }
+      const response = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
 
-        // Send message to /chat endpoint including the thread_id
-        const response = await fetch('/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message: userMessage, thread_id: currentThreadId }),
-        });
+      const data = await response.json();
+      const reply = data.reply || "Bruno didn’t respond. Please try again.";
 
-        const data = await response.json();
-
-        if (document.getElementById(typingId)) { // Remove typing indicator
-            document.getElementById(typingId).remove();
-        }
-
-        if (response.ok) {
-            displayMessage(data.reply, 'bruno');
-            // In case the backend somehow re-issues a thread ID (unlikely in this setup, but safe)
-            if (data.thread_id && data.thread_id !== currentThreadId) {
-                currentThreadId = data.thread_id;
-                localStorage.setItem('bruno_chat_thread_id', currentThreadId);
-                console.log('Thread ID updated by server (unusual but handled):', currentThreadId);
-            }
-        } else {
-            console.error('Error from server:', data.reply || response.statusText);
-            displayMessage(data.reply || "Sorry, an error occurred while processing your request.", "bruno");
-        }
+      document.getElementById(typingId).remove();
+      const replyTimestamp = getCurrentTimestamp();
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> ${reply} <span class="timestamp">${replyTimestamp}</span></div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } catch (error) {
-        if (document.getElementById(typingId)) { // Remove typing indicator
-            document.getElementById(typingId).remove();
-        }
-        console.error('Network error sending message:', error);
-        displayMessage("Sorry, a network error occurred. Please check your internet connection.", "bruno");
-    } finally {
-        // Re-enable input and button
-        userInput.disabled = false;
-        sendButton.disabled = false;
-        sendButton.innerHTML = '<img src="{{ url_for('static', filename='icons/send-icon.svg') }}" alt="Send" style="height:24px;width:24px;vertical-align:middle;">'; // Restore send icon
-        userInput.focus(); // Keep focus on input field
+      document.getElementById(typingId).remove();
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Sorry, something went wrong.</div>`;
+      console.error("Fetch error:", error);
     }
   }
 
-  // Event Listeners
-  sendButton.addEventListener('click', sendMessage);
-  userInput.addEventListener('keypress', function(event) {
-      if (event.key === 'Enter') {
-          event.preventDefault(); // Prevent new line in input field
-          sendMessage();
-      }
+  document.getElementById('userInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') sendMessage();
   });
 
-  // Handle the initial click on the avatar
+  function startVoice() {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert("Voice input not supported in this browser.");
+      return;
+    }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-GB';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('userInput').value = transcript;
+      sendMessage();
+    };
+
+    recognition.onerror = function(event) {
+      console.error("Speech recognition error:", event.error);
+    };
+    recognition.start();
+  }
+
+
+  // Hide avatar overlay and show chat area on click
   document.addEventListener("DOMContentLoaded", function() {
-    avatarImg.addEventListener('click', async function() {
+    const avatarOverlay = document.getElementById('avatar-overlay');
+    const chatArea = document.getElementById('chat-area');
+    const avatarImg = document.getElementById('avatar-img');
+    avatarImg.addEventListener('click', function() {
       avatarOverlay.style.display = 'none';
       chatArea.style.display = 'flex';
-      newChatButton.style.display = 'block'; // Show New Chat button once chat starts
-      // Get or create thread ID on avatar click, as this signifies chat start
-      currentThreadId = await getOrCreateThreadId();
+      // Optionally, show Bruno's welcome message
+      const messagesDiv = document.getElementById('messages');
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Hello, I'm Bruno. How can I help today?<span class="timestamp">${timestamp}</span></div>`;
     });
-
-    // Event listener for the new chat button
-    newChatButton.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to start a new chat? This will clear the current conversation history.")) {
-            await getOrCreateThreadId(true); // Pass true to force a new chat
-        }
-    });
-
-    // If the chat area is displayed directly (e.g., if you remove the overlay logic later)
-    // You might want to call getOrCreateThreadId() here too:
-    // if (chatArea.style.display === 'flex') {
-    //   currentThreadId = await getOrCreateThreadId();
-    // }
   });
-
-  // Optional: Restore input focus if user clicks away
-  messagesDiv.addEventListener('click', () => userInput.focus());
-
 </script>
 {% endblock %}
