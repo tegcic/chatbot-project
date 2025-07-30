@@ -218,12 +218,12 @@
         // Build the chat content HTML
         widgetContainer.innerHTML = `
             <div class="bruno-widget-header">
-                Chat with Bruno
+                Chat with Brun
                 <button class="bruno-close-button">&times;</button>
             </div>
             <div class="bruno-overlay">
                 <img src="${FLASK_APP_URL}/static/bruno-avatar.png" alt="Bruno Avatar" class="bruno-overlay-avatar">
-                <h2>Hello, I'm Bruno 👋</h2>
+                <h2>Hello, I'm Brun 👋</h2>
                 <p>Click avatar to start chatting.<br>
                 <small>I am an AI assistant and cannot provide personal, legal, or medical advice. Please do not share sensitive personal information.</small>
                 </p>
@@ -283,7 +283,7 @@
             overlay.style.display = 'none';
             chatArea.style.display = 'flex';
             const timestamp = getCurrentTimestamp();
-            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Hello, I'm Bruno. How can I help today?<span class="bruno-timestamp">${timestamp}</span></div>`;
+            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Hello, I'm Brun. How can I help today?<span class="bruno-timestamp">${timestamp}</span></div>`;
             userInput.focus(); // Focus on input after starting chat
         });
 
