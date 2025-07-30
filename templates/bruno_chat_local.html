@@ -78,7 +78,7 @@
 <div id="chatbox">
   <div id="avatar-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; position: absolute; top: 0; left: 0; width: 100%; background: rgba(10,10,10,0.98); z-index: 20;">
     <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" width="120" height="120" id="avatar-img" style="border-radius: 50%; box-shadow: 0 0 10px #00ffd5; cursor: pointer;">
-    <h2 style="color: #00ffd5; margin-top: 20px;">Hello, I'm Bruno 👋</h2>
+    <h2 style="color: #00ffd5; margin-top: 20px;">Hello, I'm Brun 👋</h2>
     <p style="color: #99d3c7; max-width: 90%; text-align: center; margin-top: 10px;">
       Click avatar to start chatting.<br>
       <small>I am an AI assistant and cannot provide personal, legal, or medical advice. Please do not share sensitive personal information.</small>
@@ -131,7 +131,7 @@
       });
 
       const data = await response.json();
-      const reply = data.reply || "Bruno didn’t respond. Please try again.";
+      const reply = data.reply || "Brun didn’t respond. Please try again.";
 
       document.getElementById(typingId).remove();
       const replyTimestamp = getCurrentTimestamp();
@@ -183,7 +183,7 @@
       const messagesDiv = document.getElementById('messages');
       const now = new Date();
       const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Hello, I'm Bruno. How can I help today?<span class="timestamp">${timestamp}</span></div>`;
+      messagesDiv.innerHTML += `<div class="message"><span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Hello, I'm Brun. How can I help today?<span class="timestamp">${timestamp}</span></div>`;
     });
   });
 </script>
