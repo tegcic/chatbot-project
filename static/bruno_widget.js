@@ -218,7 +218,7 @@
         // Build the chat content HTML
         widgetContainer.innerHTML = `
             <div class="bruno-widget-header">
-                Chat with Brun
+                Chat with Brun [Beta]
                 <button class="bruno-close-button">&times;</button>
             </div>
             <div class="bruno-overlay">
