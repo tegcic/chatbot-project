@@ -102,26 +102,21 @@
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
-  function formatURLs(text) {
-    if (!text) return "";
+      const data = await response.json();
+      const rawReply = data.reply || "Brun didn’t respond. Please try again.";
+      const reply = formatURLs(rawReply);
 
-    // Convert Markdown links [label](url) → clickable label
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-    });
-
-    // Convert plain URLs with http/https → clickable
-    text = text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-
-    // Optionally: bare domains (tegcic.org.uk/join) → clickable
-    text = text.replace(/(?<!href=")(\b[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\S*)/g, function(url) {
-      return `<a href="https://${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-
-    return text;
-  }
+      document.getElementById(typingId).remove();
+      const replyTimestamp = getCurrentTimestamp();
+      messagesDiv.innerHTML += `
+        <div class="message">
+          <span class="bruno">
+            <img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'>
+          </span>
+          ${reply}
+          <span class="timestamp">${replyTimestamp}</span>
+        </div>`;
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
   window.onload = () => {
     const messagesDiv = document.getElementById('messages');
     const timestamp = getCurrentTimestamp();
