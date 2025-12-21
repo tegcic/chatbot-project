@@ -106,6 +106,12 @@
       border-radius: 8px;
     }
 
+    /* message content wrapper used so CSS remains applied */
+    .message .content {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
     @media (max-width:600px) {
       #messages { height: 250px; }
       .input-row { flex-direction: column; }
@@ -149,6 +155,90 @@
       return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
+    // Escape HTML to avoid injection
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str).replace(/[&<>"']/g, function (s) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[s];
+      });
+    }
+
+    // Convert Markdown links [label](https://...) and plain URLs into safe anchors.
+    // Returns an HTML string with only anchors allowed (the rest escaped).
+    async function formatMessage(text) {
+      if (!text) return "";
+
+      // Work on original text for Markdown detection, then escape pieces as inserted
+      const mdRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+      // Replace markdown links with a placeholder token we can later re-insert as safe anchors
+      const placeholders = [];
+      let placeholderIndex = 0;
+      const textWithPlaceholders = String(text).replace(mdRe, function(_, label, url) {
+        const token = `@@LINK${placeholderIndex}@@`;
+        placeholders.push({ token, label: String(label), url: String(url) });
+        placeholderIndex++;
+        return token;
+      });
+
+      // Escape the remaining text so arbitrary HTML can't get through
+      let escaped = escapeHtml(textWithPlaceholders);
+
+      // Re-insert safe anchors for placeholders
+      placeholders.forEach(p => {
+        const safeLabel = escapeHtml(p.label);
+        const safeUrl = escapeHtml(p.url);
+        const anchor = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+        escaped = escaped.split(p.token).join(anchor);
+      });
+
+      // Now convert plain URLs in the escaped HTML into anchors.
+      // We'll parse into a DOM fragment and only modify text nodes (safe approach).
+      const container = document.createElement('div');
+      container.innerHTML = escaped;
+
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+      textNodes.forEach(node => {
+        const parent = node.parentNode;
+        if (!parent || parent.nodeName.toLowerCase() === 'a') return;
+        const txt = node.nodeValue;
+        if (!txt || !urlRegex.test(txt)) return;
+
+        const frag = document.createDocumentFragment();
+        let lastIndex = 0;
+        txt.replace(urlRegex, function(match, url, offset) {
+          if (offset > lastIndex) {
+            frag.appendChild(document.createTextNode(txt.substring(lastIndex, offset)));
+          }
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.appendChild(document.createTextNode(url));
+          frag.appendChild(a);
+          lastIndex = offset + match.length;
+        });
+        if (lastIndex < txt.length) {
+          frag.appendChild(document.createTextNode(txt.substring(lastIndex)));
+        }
+        parent.replaceChild(frag, node);
+      });
+
+      // Preserve line breaks
+      let resultHtml = container.innerHTML;
+      resultHtml = resultHtml.replace(/\n/g, '<br>');
+      return resultHtml;
+    }
+
     async function sendMessage() {
       const input = document.getElementById('userInput');
       if (!input) return;
@@ -157,10 +247,12 @@
 
       const messagesDiv = document.getElementById('messages');
       const timestamp = getCurrentTimestamp();
-      // append user message
+
+      // Format the user message into safe HTML with clickable links
+      const userHtml = await formatMessage(message);
       const userNode = document.createElement('div');
       userNode.className = 'message';
-      userNode.innerHTML = `<span class="user">You:</span> ${escapeHtml(message)} <span class="timestamp">${timestamp}</span>`;
+      userNode.innerHTML = `<span class="user">You:</span> <span class="content">${userHtml}</span> <span class="timestamp">${timestamp}</span>`;
       messagesDiv.appendChild(userNode);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
       input.value = "";
@@ -190,10 +282,11 @@
         const tEl = document.getElementById(typingId);
         if (tEl) tEl.remove();
 
-        // append reply
+        // Format assistant reply (links clickable)
+        const replyHtml = await formatMessage(reply);
         const replyNode = document.createElement('div');
         replyNode.className = 'message';
-        replyNode.innerHTML = `<span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> ${escapeHtml(reply)} <span class="timestamp">${getCurrentTimestamp()}</span>`;
+        replyNode.innerHTML = `<span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> <span class="content">${replyHtml}</span> <span class="timestamp">${getCurrentTimestamp()}</span>`;
         messagesDiv.appendChild(replyNode);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
@@ -209,21 +302,48 @@
       }
     }
 
-    // Simple escaping to avoid accidental HTML injection
-    function escapeHtml(str) {
-      if (str == null) return "";
-      return String(str).replace(/[&<>"']/g, function (s) {
-        return {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;'
-        }[s];
-      });
-    }
+    // Initialize event listeners after DOM is ready
+    document.addEventListener("DOMContentLoaded", function() {
+      const avatarOverlay = document.getElementById('avatar-overlay');
+      const chatArea = document.getElementById('chat-area');
+      const avatarImg = document.getElementById('avatar-img');
+      const messagesDiv = document.getElementById('messages');
+      const sendBtn = document.getElementById('sendBtn');
+      const userInput = document.getElementById('userInput');
 
-    function startVoice() {
+      if (avatarImg && avatarOverlay && chatArea && messagesDiv) {
+        avatarImg.addEventListener('click', function() {
+          avatarOverlay.style.display = 'none';
+          chatArea.style.display = 'flex';
+          // show greeting message
+          const timestamp = getCurrentTimestamp();
+          const welcomeNode = document.createElement('div');
+          welcomeNode.className = 'message';
+          // format the greeting so any links included would be clickable too
+          formatMessage("Hello, I'm Brun. How can I help today?").then(html => {
+            welcomeNode.innerHTML = `<span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> <span class="content">${html}</span> <span class="timestamp">${timestamp}</span>`;
+            messagesDiv.appendChild(welcomeNode);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          });
+        });
+      }
+
+      if (sendBtn) {
+        sendBtn.addEventListener('click', sendMessage);
+      }
+
+      if (userInput) {
+        userInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+    });
+
+    // expose startVoice if you want to wire it to a UI element (kept from original)
+    window.startVoice = function() {
       if (!('webkitSpeechRecognition' in window)) {
         alert("Voice input not supported in this browser.");
         return;
@@ -246,47 +366,7 @@
         console.error("Speech recognition error:", event.error);
       };
       recognition.start();
-    }
-
-    // Initialize event listeners after DOM is ready
-    document.addEventListener("DOMContentLoaded", function() {
-      const avatarOverlay = document.getElementById('avatar-overlay');
-      const chatArea = document.getElementById('chat-area');
-      const avatarImg = document.getElementById('avatar-img');
-      const messagesDiv = document.getElementById('messages');
-      const sendBtn = document.getElementById('sendBtn');
-      const userInput = document.getElementById('userInput');
-
-      if (avatarImg && avatarOverlay && chatArea && messagesDiv) {
-        avatarImg.addEventListener('click', function() {
-          avatarOverlay.style.display = 'none';
-          chatArea.style.display = 'flex';
-          // show greeting message
-          const timestamp = getCurrentTimestamp();
-          const welcome = document.createElement('div');
-          welcome.className = 'message';
-          welcome.innerHTML = `<span class="bruno"><img src='{{ url_for('static', filename='bruno-avatar.png') }}' alt='Bruno Avatar' class='bruno-avatar'></span> Hello, I'm Brun. How can I help today?<span class="timestamp">${timestamp}</span>`;
-          messagesDiv.appendChild(welcome);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        });
-      }
-
-      if (sendBtn) {
-        sendBtn.addEventListener('click', sendMessage);
-      }
-
-      if (userInput) {
-        userInput.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            sendMessage();
-          }
-        });
-      }
-    });
-
-    // expose startVoice if you want to wire it to a UI element
-    window.startVoice = startVoice;
+    };
   })();
 </script>
 {% endblock %}
