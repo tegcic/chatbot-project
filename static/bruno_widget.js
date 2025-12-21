@@ -151,7 +151,22 @@
         }
     `;
 
-    function getCurrentTimestamp() {
+    function getCurrentTimestamp()
+    function formatURLs(text) {
+    if (!text) return "";
+
+    // Markdown: [label](https://url)
+    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    });
+
+    // Plain URLs: https://example.com
+    text = text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+
+    return text;
+}{
         const now = new Date();
         return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
