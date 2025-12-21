@@ -151,7 +151,10 @@
         }
     `;
 
-    function getCurrentTimestamp()
+    function getCurrentTimestamp() }{
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
     function formatURLs(text) {
     if (!text) return "";
 
@@ -166,11 +169,6 @@
     });
 
     return text;
-}{
-        const now = new Date();
-        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
     async function sendMessage(messagesDiv, userInput, sendButton) {
         const message = userInput.value.trim();
         if (!message) return;
