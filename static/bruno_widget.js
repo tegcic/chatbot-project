@@ -1,14 +1,14 @@
 (function() {
-    // Configuration for your Flask backend URL
-    const FLASK_APP_URL = "https://brunbot.tegcic.org/"; // IMPORTANT: Change this to your Flask app's deployed URL!
+    // Configuration for your Flask backend URL (no trailing slash to avoid double //)
+    const FLASK_APP_URL = "https://brunbot.tegcic.org";
 
     const CSS = `
         .bruno-widget-container {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            width: 270px; /* Adjust width as needed */
-            height: 450px; /* Adjust height as needed */
+            width: 270px;
+            height: 450px;
             background: #0a0a0a;
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0,255,213,0.6);
@@ -16,10 +16,10 @@
             flex-direction: column;
             font-family: Arial, sans-serif;
             color: white;
-            z-index: 10000; /* Ensure it's on top */
-            overflow: hidden; /* To handle corner radius */
+            z-index: 10000;
+            overflow: hidden;
             transition: all 0.3s ease-in-out;
-            transform: scale(0); /* Start hidden */
+            transform: scale(0);
             transform-origin: bottom right;
             border: 1px solid #00ffd5;
         }
@@ -38,7 +38,7 @@
             align-items: center;
             font-weight: bold;
             font-size: 1.1em;
-            cursor: pointer; /* To toggle the chat */
+            cursor: pointer;
         }
         .bruno-widget-header button {
             background: none;
@@ -61,7 +61,7 @@
             flex-grow: 1;
             overflow-y: auto;
             padding: 10px;
-            border-bottom: 1px solid #00ffd5; /* Separator from input */
+            border-bottom: 1px solid #00ffd5;
         }
         .bruno-message { margin-bottom: 10px; font-size: 0.8em; }
         .bruno-user { font-weight: bold; color: #fff; font-size: 1.0em; }
@@ -71,7 +71,7 @@
         .bruno-input-row input {
             flex: 1; padding: 10px; font-size: 14px;
             border: 1px solid #00ffd5; border-radius: 4px; background: #1a1a1a; color: white;
-            outline: none; /* Remove blue focus border */
+            outline: none;
         }
         .bruno-input-row button {
             padding: 10px 14px; font-size: 14px; background: #00ffd5; color: #0a0a0a;
@@ -86,7 +86,6 @@
             width: 20px;
         }
 
-        /* Initial overlay styles */
         .bruno-overlay {
             position: absolute;
             top: 0;
@@ -107,7 +106,7 @@
             border-radius: 50%;
             box-shadow: 0 0 10px #00ffd5;
             cursor: pointer;
-            width: 100px; /* Adjust size for widget */
+            width: 100px;
             height: 100px;
         }
         .bruno-overlay h2 {
@@ -122,7 +121,6 @@
             margin-top: 5px;
         }
 
-        /* Floating button to open chat */
         .bruno-floating-button {
             position: fixed;
             bottom: 20px;
@@ -138,7 +136,7 @@
             font-size: 2em;
             cursor: pointer;
             box-shadow: 0 0 10px rgba(0,255,213,0.7);
-            z-index: 10001; /* Above the widget when closed */
+            z-index: 10001;
             transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
         }
         .bruno-floating-button img {
@@ -151,37 +149,40 @@
         }
     `;
 
-    function getCurrentTimestamp() }{
+    function getCurrentTimestamp() {
         const now = new Date();
         return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
+
     function formatURLs(text) {
-    if (!text) return "";
+        if (!text) return "";
 
-    // Markdown: [label](https://url)
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-    });
+        // Markdown-style links [label](https://...)
+        text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+        });
 
-    // Plain URLs: https://example.com
-    text = text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
+        // Plain URLs
+        text = text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        });
 
-    return text;
+        return text;
+    }
+
     async function sendMessage(messagesDiv, userInput, sendButton) {
         const message = userInput.value.trim();
         if (!message) return;
 
         const timestamp = getCurrentTimestamp();
-        messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-user">You:</span> ${message} <span class="bruno-timestamp">${timestamp}</span></div>`;
+        messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-user">You:</span> ${escapeHtml(message)} <span class="bruno-timestamp">${timestamp}</span></div>`;
         userInput.value = "";
 
-        const typingId = "bruno-typing-" + Date.now(); // Unique ID for typing indicator
-        messagesDiv.innerHTML += `<div class="bruno-message" id="${typingId}"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> <img src="${FLASK_APP_URL}/static/icons/typing-dots.svg" alt="typing..." style="vertical-align: middle; height: 18px;"></div>`;
+        const typingId = "bruno-typing-" + Date.now();
+        messagesDiv.innerHTML += `<div class="bruno-message" id="${typingId}"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Bruno is typing... </div>`;
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-        // Disable input and button while typing
+        // Disable input while waiting
         userInput.disabled = true;
         sendButton.disabled = true;
 
@@ -193,22 +194,33 @@
             });
 
             const data = await response.json();
-            const reply = data.reply || "Bruno didn’t respond. Please try again.";
+            const reply = data?.reply || "Bruno didn’t respond. Please try again.";
+            document.getElementById(typingId)?.remove();
 
-            document.getElementById(typingId)?.remove(); // Use optional chaining for safer removal
             const replyTimestamp = getCurrentTimestamp();
-            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> ${reply} <span class="bruno-timestamp">${replyTimestamp}</span></div>`;
+            // Format URLs in reply and insert safely (we escape other text)
+            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> ${formatURLs(escapeHtml(reply))} <span class="bruno-timestamp">${replyTimestamp}</span></div>`;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         } catch (error) {
             document.getElementById(typingId)?.remove();
-            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Sorry, something went wrong.</div>`;
+            const errTimestamp = getCurrentTimestamp();
+            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Sorry, something went wrong. Please try again. <span class="bruno-timestamp">${errTimestamp}</span></div>`;
             console.error("Fetch error:", error);
         } finally {
-            // Re-enable input and button
             userInput.disabled = false;
             sendButton.disabled = false;
-            userInput.focus(); // Focus back on input
+            userInput.focus();
         }
+    }
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return "";
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     function createBrunoChatWidget() {
@@ -232,7 +244,7 @@
         widgetContainer.innerHTML = `
             <div class="bruno-widget-header">
                 Chat with Brun [Beta]
-                <button class="bruno-close-button">&times;</button>
+                <button class="bruno-close-button" aria-label="Close chat">&times;</button>
             </div>
             <div class="bruno-overlay">
                 <img src="${FLASK_APP_URL}/static/bruno-avatar.png" alt="Bruno Avatar" class="bruno-overlay-avatar">
@@ -259,20 +271,21 @@
         const overlay = widgetContainer.querySelector('.bruno-overlay');
         const overlayAvatar = widgetContainer.querySelector('.bruno-overlay-avatar');
         const closeButton = widgetContainer.querySelector('.bruno-close-button');
-        
-       // Add swipe down to close functionality
-        let startY = 0; widgetContainer.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;});
+
+        // Add swipe down to close functionality
+        let startY = 0;
+        widgetContainer.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
 
         widgetContainer.addEventListener('touchend', (e) => {
-        const endY = e.changedTouches[0].clientY;
-        const deltaY = endY - startY;
-
-        if (deltaY > 100) { // Adjust threshold as needed
-        widgetContainer.classList.remove('open');
-        floatingButton.classList.remove('hidden'); }
-           });
-
+            const endY = e.changedTouches[0].clientY;
+            const deltaY = endY - startY;
+            if (deltaY > 100) {
+                widgetContainer.classList.remove('open');
+                floatingButton.classList.remove('hidden');
+            }
+        });
 
         // Event Listeners
         sendButton.onclick = () => sendMessage(messagesDiv, userInput, sendButton);
@@ -296,13 +309,10 @@
             overlay.style.display = 'none';
             chatArea.style.display = 'flex';
             const timestamp = getCurrentTimestamp();
-            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Hello, I'm Brun. How can I help today?<span class="bruno-timestamp">${timestamp}</span></div>`;
-            userInput.focus(); // Focus on input after starting chat
+            messagesDiv.innerHTML += `<div class="bruno-message"><span class="bruno-bruno"><img src='${FLASK_APP_URL}/static/bruno-avatar.png' alt='Bruno Avatar' class='bruno-bruno-avatar'></span> Hello! How can I help you today? <span class="bruno-timestamp">${timestamp}</span></div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            userInput.focus();
         });
-
-        // Optional: Voice input (needs to be carefully integrated into a widget, might conflict with host page)
-        // For simplicity, removed voice for now as it adds complexity and may not be universally supported/desired in a widget.
-        // If you need it, you'd add a button and connect it to a function similar to your original `startVoice`.
     }
 
     // Expose the function globally so it can be called from the embedding page
