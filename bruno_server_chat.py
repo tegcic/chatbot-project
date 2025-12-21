@@ -192,6 +192,6 @@ if __name__ == "__main__":
         exit(1)
 
     # Render sets PORT automatically in production environments
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 10000))
     # Host on 0.0.0.0 to be accessible externally (e.g., in a Docker container or Render)
     app.run(debug=False, host="0.0.0.0", port=port)
