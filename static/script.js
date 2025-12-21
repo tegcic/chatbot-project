@@ -30,10 +30,10 @@ async function sendMessage() {
 
     const data = await response.json();
 
-    // Format URLs in Bruno's reply
+    // ✅ Make URLs clickable
     const formattedReply = formatURLs(data.reply);
 
-    // Show Bruno's reply
+    // ✅ Use innerHTML so links render
     const brunoBubble = document.createElement("div");
     brunoBubble.className = "bruno-message";
     brunoBubble.innerHTML = "Bruno: " + formattedReply;
