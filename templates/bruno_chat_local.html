@@ -1,221 +1,227 @@
+{% extends 'minimal_base.html' %}
+
+{% block title %}Bruno Chat{% endblock %}
+
+{% block content %}
+<div id="chat-root" style="max-width:720px;margin:40px auto;">
+  <div id="avatar-overlay" title="Click to open chat" style="display:flex;align-items:center;justify-content:center;height:160px;background:#0b69ff;color:#fff;cursor:pointer;border-radius:8px 8px 0 0;">
+    <img id="avatar-img" src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" style="width:92px;height:92px;border-radius:50%;border:4px solid rgba(255,255,255,0.16);">
+  </div>
+
+  <div id="chat-area" style="display:none;flex-direction:column;border:1px solid #e6e9ef;border-top:0;background:#fff;border-radius:0 0 8px 8px;overflow:hidden;height:520px;">
+    <div id="messages" aria-live="polite" style="padding:16px;overflow:auto;flex:1;background:#fafafa;height:420px;"></div>
+
+    <div id="composer" style="display:flex;gap:8px;padding:12px;border-top:1px solid #eee;background:#fff;">
+      <textarea id="userInput" placeholder="Type a message..." rows="1" style="flex:1;padding:10px 12px;border-radius:6px;border:1px solid #ddd;min-height:36px;"></textarea>
+      <button id="sendBtn" type="button" style="background:#0b69ff;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Temporary debug panel (remove after verifying) -->
+<div id="bruno-debug" style="position:fixed;right:8px;bottom:8px;z-index:9999;background:#111;color:#fff;padding:8px;border-radius:6px;font-size:12px;opacity:0.95;">
+  <div><strong>Debug</strong></div>
+  <div>static avatar: {{ url_for('static', filename='bruno-avatar.png') }}</div>
+  <div>typing icon: {{ url_for('static', filename='icons/typing-dots.svg') }}</div>
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
-  function getCurrentTimestamp() {
-    const now = new Date();
-    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  }
+  // Minimal, robust chat script that expects the DOM elements provided above.
+  (function () {
+    'use strict';
 
-  // Escape HTML to prevent XSS
-  function escapeHtml(str) {
-    if (str == null) return "";
-    return String(str).replace(/[&<>"']/g, function (s) {
-      return {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      }[s];
-    });
-  }
-
-  // Convert markdown links and plain URLs to clickable anchors safely.
-  // Uses DOM operations to ensure we only replace text nodes (avoids double-replacing inside anchors).
-  async function formatMessage(text) {
-    if (!text) return "";
-
-    // First, escape the entire text so any user-supplied HTML is neutralized
-    const escaped = escapeHtml(text);
-
-    // Convert Markdown style [label](https://url) into anchors.
-    // We operate on the escaped text and escape the label again to be safe.
-    const mdConverted = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
-      // label is already escaped (from escaped variable), but ensure it's safe
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
-    });
-
-    // Parse to DOM and convert plain URLs found in text nodes to anchors.
-    const container = document.createElement('div');
-    container.innerHTML = mdConverted;
-
-    const urlRegex = /(https?:\/\/[^\s<]+)/g;
-
-    // Walk the DOM and process text nodes
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-    const textNodes = [];
-    while (walker.nextNode()) {
-      textNodes.push(walker.currentNode);
+    function getCurrentTimestamp() {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
-    textNodes.forEach((node) => {
-      const parent = node.parentNode;
-      // Don't touch text nodes that are already inside an anchor
-      if (!parent || parent.nodeName.toLowerCase() === 'a') return;
-
-      const text = node.nodeValue;
-      if (!text || !urlRegex.test(text)) return;
-
-      // Create a document fragment and replace url occurrences with anchor elements
-      const frag = document.createDocumentFragment();
-      let lastIndex = 0;
-      text.replace(urlRegex, function (match, url, offset) {
-        // Append preceding text
-        if (offset > lastIndex) {
-          frag.appendChild(document.createTextNode(text.substring(lastIndex, offset)));
-        }
-        // Create anchor
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.appendChild(document.createTextNode(url));
-        frag.appendChild(a);
-        lastIndex = offset + match.length;
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str).replace(/[&<>"']/g, function (s) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[s];
       });
-      // Append any remaining text
-      if (lastIndex < text.length) {
-        frag.appendChild(document.createTextNode(text.substring(lastIndex)));
+    }
+
+    async function formatMessage(text) {
+      try {
+        if (!text) return "";
+        // Convert Markdown-like [label](url) into anchors before escaping label/url insertion
+        const mdConverted = String(text).replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function(_, label, url) {
+          return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+        });
+
+        // Parse and convert plain URLs in text nodes to anchors safely
+        const container = document.createElement('div');
+        container.innerHTML = escapeHtml(mdConverted); // mdConverted already has anchors escaped-inserted, but keep safe
+
+        const urlRegex = /(https?:\/\/[^\s<]+)/g;
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        textNodes.forEach(node => {
+          const parent = node.parentNode;
+          if (!parent || parent.nodeName.toLowerCase() === 'a') return;
+          const text = node.nodeValue;
+          if (!text || !urlRegex.test(text)) return;
+          const frag = document.createDocumentFragment();
+          let lastIndex = 0;
+          text.replace(urlRegex, function (match, url, offset) {
+            if (offset > lastIndex) frag.appendChild(document.createTextNode(text.substring(lastIndex, offset)));
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.appendChild(document.createTextNode(url));
+            frag.appendChild(a);
+            lastIndex = offset + match.length;
+          });
+          if (lastIndex < text.length) frag.appendChild(document.createTextNode(text.substring(lastIndex)));
+          parent.replaceChild(frag, node);
+        });
+
+        let resultHtml = container.innerHTML;
+        resultHtml = resultHtml.replace(/\n/g, '<br>');
+        return resultHtml;
+      } catch (err) {
+        console.error('formatMessage error:', err);
+        return escapeHtml(String(text || ''));
       }
-
-      // Replace original text node
-      parent.replaceChild(frag, node);
-    });
-
-    // Preserve line breaks: convert remaining newlines in the serialized HTML into <br>
-    // (Note: text nodes keep \n, but innerHTML will not convert them, so do replacement on a string)
-    let resultHtml = container.innerHTML;
-    resultHtml = resultHtml.replace(/\n/g, '<br>');
-
-    return resultHtml;
-  }
-
-  window.onload = () => {
-    // reserved if you want a greeting later
-  };
-
-  async function sendMessage() {
-    const input = document.getElementById('userInput');
-    if (!input) return;
-    const rawMessage = input.value.trim();
-    if (!rawMessage) return;
-
-    const messagesDiv = document.getElementById('messages');
-    if (!messagesDiv) return;
-
-    // Show user message (escaped and with URLs converted)
-    const userHtml = await formatMessage(rawMessage);
-    const timestamp = getCurrentTimestamp();
-    messagesDiv.innerHTML += `
-      <div class="message">
-        <span class="user">You:</span> ${userHtml}
-        <span class="timestamp">${timestamp}</span>
-      </div>`;
-    input.value = "";
-
-    // Create a unique typing indicator id so multiple calls don't clash
-    const typingId = `typing-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    messagesDiv.innerHTML += `
-      <div class="message" id="${typingId}">
-        <span class="bruno">
-          <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar">
-        </span>
-        <img src="{{ url_for('static', filename='icons/typing-dots.svg') }}" alt="typing..." style="vertical-align: middle; height: 18px;">
-      </div>`;
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-    try {
-      const response = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: rawMessage })
-      });
-
-      // Remove typing indicator early if response is not ok
-      const typingEl = document.getElementById(typingId);
-
-      if (!response.ok) {
-        if (typingEl) typingEl.remove();
-        const text = await response.text();
-        messagesDiv.innerHTML += `
-          <div class="message">
-            <span class="bruno">
-              <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar">
-            </span>
-            Sorry, something went wrong: ${escapeHtml(text || response.statusText)}
-          </div>`;
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        return;
-      }
-
-      const data = await response.json();
-      const rawReply = data.reply || "Brun didn’t respond. Please try again.";
-      const replyHtml = await formatMessage(rawReply);
-
-      // Remove typing indicator
-      if (typingEl) typingEl.remove();
-
-      const replyTimestamp = getCurrentTimestamp();
-      messagesDiv.innerHTML += `
-        <div class="message">
-          <span class="bruno">
-            <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar">
-          </span>
-          ${replyHtml}
-          <span class="timestamp">${replyTimestamp}</span>
-        </div>`;
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    } catch (error) {
-      const typingEl = document.getElementById(typingId);
-      if (typingEl) typingEl.remove();
-
-      messagesDiv.innerHTML += `
-        <div class="message">
-          <span class="bruno">
-            <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar">
-          </span>
-          Sorry, something went wrong.
-        </div>`;
-      console.error("Fetch error:", error);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-  }
-
-  // Enter key sends message (no-op if input element missing)
-  document.addEventListener("DOMContentLoaded", function() {
-    const inputEl = document.getElementById('userInput');
-    if (inputEl) {
-      inputEl.addEventListener('keypress', function(e) {
-        // Allow Shift+Enter for newline if desired; only submit on plain Enter
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
     }
 
-    // Hide avatar overlay and show chat area on click (guard against missing elements)
-    const avatarOverlay = document.getElementById('avatar-overlay');
-    const chatArea = document.getElementById('chat-area');
-    const avatarImg = document.getElementById('avatar-img');
-    const messagesDiv = document.getElementById('messages');
+    async function sendMessage() {
+      try {
+        const input = document.getElementById('userInput');
+        if (!input) return;
+        const rawMessage = input.value.trim();
+        if (!rawMessage) return;
 
-    if (avatarImg && avatarOverlay && chatArea && messagesDiv) {
-      avatarImg.addEventListener('click', function() {
-        avatarOverlay.style.display = 'none';
-        chatArea.style.display = 'flex';
+        const messagesDiv = document.getElementById('messages');
+        if (!messagesDiv) return;
 
+        const userHtml = await formatMessage(rawMessage);
         const timestamp = getCurrentTimestamp();
-        messagesDiv.innerHTML += `
-          <div class="message">
-            <span class="bruno">
-              <img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar">
-            </span>
-            Hello, I'm Brun. How can I help today?
-            <span class="timestamp">${timestamp}</span>
-          </div>`;
+        const userEl = document.createElement('div');
+        userEl.className = 'message';
+        userEl.innerHTML = `<span class="user" style="font-weight:600;color:#0b6aff;margin-right:6px;">You:</span> ${userHtml} <span class="timestamp" style="color:#666;margin-left:8px;font-size:12px;">${timestamp}</span>`;
+        messagesDiv.appendChild(userEl);
+        input.value = "";
+
+        const typingId = `typing-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const typingEl = document.createElement('div');
+        typingEl.className = 'message';
+        typingEl.id = typingId;
+        typingEl.innerHTML = `<span class="bruno"><img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar" style="width:36px;height:36px;border-radius:50%;"></span>
+                              <img src="{{ url_for('static', filename='icons/typing-dots.svg') }}" alt="typing..." style="vertical-align: middle; height: 18px;">`;
+        messagesDiv.appendChild(typingEl);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      });
+
+        let response;
+        try {
+          response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: rawMessage })
+          });
+        } catch (networkErr) {
+          const tEl = document.getElementById(typingId);
+          if (tEl) tEl.remove();
+          const errEl = document.createElement('div');
+          errEl.className = 'message';
+          errEl.innerHTML = `<span class="bruno"><img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar" style="width:36px;height:36px;border-radius:50%;"></span>
+                             Sorry, network error.`;
+          messagesDiv.appendChild(errEl);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          console.error('Network error:', networkErr);
+          return;
+        }
+
+        const tEl = document.getElementById(typingId);
+        if (!response.ok) {
+          if (tEl) tEl.remove();
+          let text;
+          try { text = await response.text(); } catch(e){ text = response.statusText; }
+          const errEl = document.createElement('div');
+          errEl.className = 'message';
+          errEl.innerHTML = `<span class="bruno"><img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar" style="width:36px;height:36px;border-radius:50%;"></span>
+                             Sorry, something went wrong: ${escapeHtml(text || response.statusText)}`;
+          messagesDiv.appendChild(errEl);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          return;
+        }
+
+        const data = await response.json().catch(()=>({ reply: null }));
+        const rawReply = data.reply || "Brun didn’t respond. Please try again.";
+        const replyHtml = await formatMessage(rawReply);
+
+        if (tEl) tEl.remove();
+        const replyEl = document.createElement('div');
+        replyEl.className = 'message';
+        replyEl.innerHTML = `<span class="bruno"><img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar" style="width:36px;height:36px;border-radius:50%;"></span>
+                             ${replyHtml} <span class="timestamp" style="color:#666;margin-left:8px;font-size:12px;">${getCurrentTimestamp()}</span>`;
+        messagesDiv.appendChild(replyEl);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      } catch (err) {
+        console.error('sendMessage error:', err);
+      }
     }
-  });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const inputEl = document.getElementById('userInput');
+        if (inputEl) {
+          inputEl.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          });
+        }
+
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+
+        const avatarOverlay = document.getElementById('avatar-overlay');
+        const chatArea = document.getElementById('chat-area');
+        const avatarImg = document.getElementById('avatar-img');
+        const messagesDiv = document.getElementById('messages');
+
+        if (avatarImg && avatarOverlay && chatArea && messagesDiv) {
+          avatarImg.addEventListener('click', function() {
+            avatarOverlay.style.display = 'none';
+            chatArea.style.display = 'flex';
+
+            const timestamp = getCurrentTimestamp();
+            const greeting = document.createElement('div');
+            greeting.className = 'message';
+            greeting.innerHTML = `<span class="bruno"><img src="{{ url_for('static', filename='bruno-avatar.png') }}" alt="Bruno Avatar" class="bruno-avatar" style="width:36px;height:36px;border-radius:50%;"></span>
+                                  Hello, I'm Brun. How can I help today?
+                                  <span class="timestamp" style="color:#666;margin-left:8px;font-size:12px;">${timestamp}</span>`;
+            messagesDiv.appendChild(greeting);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          });
+        }
+      } catch (e) {
+        console.error('Chat init error:', e);
+        const el = document.createElement('div');
+        el.style.background = '#900';
+        el.style.color = '#fff';
+        el.style.padding = '8px';
+        el.textContent = 'Frontend failed to initialize — check console.';
+        document.body.insertBefore(el, document.body.firstChild);
+      }
+    });
+
+    // Make sendMessage available globally for inline handlers if needed
+    window.brunoSendMessage = sendMessage;
+  })();
 </script>
 {% endblock %}
